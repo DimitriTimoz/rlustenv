@@ -9,6 +9,16 @@ edition = "2021"
 bevy = "0.9.1"
 bevy_rapier2d = { version = "0.20.0" }
 
+pyo3={version="0.18", features=["macros", "auto-initialize"]}
+rlustenv_api= { path = "rlustenv_api" }
+
+
+[workspace]
+members = [
+    "rlustenv_api",
+]
+
+
 [[bin]]
 name = "2d"
 path = "./bin/2d.rs"

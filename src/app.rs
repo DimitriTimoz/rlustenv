@@ -1,5 +1,11 @@
+use std::path::Path;
+
+use crate::prelude::*;
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
+use pyo3::{GILGuard, Python};
+
+use crate::components::controller::Controller;
 
 pub struct App {
     app: bevy::app::App,
@@ -10,7 +16,9 @@ impl App {
         let mut app = bevy::app::App::new();
         app.add_plugins(DefaultPlugins)
             .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
-            .add_plugin(RapierDebugRenderPlugin::default());
+            .add_plugin(RapierDebugRenderPlugin::default())
+            .add_startup_system(Self::setup_camera);
+        pyo3::append_to_inittab!(pylib_module);
 
         Self { app }
     }
@@ -29,7 +37,36 @@ impl App {
     }
 
     pub fn run(&mut self) {
-        self.app.run();
+        self.app.add_system(Self::update_controllers).run();
+    }
+
+    fn setup_camera(mut commands: Commands) {
+        // Add a camera so we can see the debug-render.
+        #[cfg(not(feature = "3d"))]
+        commands.spawn(Camera2dBundle::default());
+        #[cfg(feature = "3d")]
+        commands.spawn(Camera3dBundle::default());
+    }
+
+    pub fn add_plugin(&mut self, plugin: impl Plugin) -> &mut Self {
+        self.app.add_plugin(plugin);
+        self
+    }
+
+    pub fn add_plugins(&mut self, plugins: impl PluginGroup) -> &mut Self {
+        self.app.add_plugins(plugins);
+        self
+    }
+
+    fn update_controllers(mut controllers: Query<&mut Controller>) {
+        for mut controller in controllers.iter_mut() {
+            match controller.update() {
+                Ok(_) => {}
+                Err(e) => {
+                    error!("Error: {e:?}");
+                }
+            }
+        }
     }
 }
 

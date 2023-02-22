@@ -1,19 +1,13 @@
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 use bevy_rapier2d::prelude::*;
-use rlustenv::prelude::*;
+use rlustenv::{prelude::*, components::controller::{Controller}};
 
 fn main() {
     rlustenv::app::App::new()
-        .add_startup_system(setup_graphics)
         .add_startup_system(setup_physics)
-        .add_system(print_ball_altitude)
         .run();
 }
 
-fn setup_graphics(mut commands: Commands) {
-    // Add a camera so we can see the debug-render.
-    commands.spawn(Camera2dBundle::default());
-}
 
 fn setup_physics(
     mut commands: Commands,
@@ -23,6 +17,7 @@ fn setup_physics(
     /* Create the ground. */
     commands
         .spawn(Collider::cuboid(500.0, 50.0))
+        .insert(Controller::default())
         .insert(TransformBundle::from(Transform::from_xyz(0.0, -100.0, 0.0)))
         .insert(MaterialMesh2dBundle {
             mesh: meshes
@@ -52,8 +47,3 @@ fn setup_physics(
         .insert(TransformBundle::from(Transform::from_xyz(0.0, 400.0, 0.0)));
 }
 
-fn print_ball_altitude(positions: Query<&Transform, With<RigidBody>>) {
-    for transform in positions.iter() {
-        println!("Ball altitude: {}", transform.translation.y);
-    }
-}
