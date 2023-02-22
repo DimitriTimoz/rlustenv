@@ -1,6 +1,6 @@
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 use bevy_rapier2d::prelude::*;
-use rlustenv::{prelude::*, components::controller::{Controller}};
+use rlustenv::prelude::*;
 
 fn main() {
     rlustenv::app::App::new()
