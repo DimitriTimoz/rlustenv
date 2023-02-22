@@ -2,27 +2,29 @@ use rlustenv_api::PyController;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use bevy::prelude::*;
 
 #[derive(Component, Clone)]
 pub struct Controller {
-    obj: PyController,
-    is_init: bool,
+    pub name: Name,
+    pub transform: TransformBundle,
+    pub is_init: bool,
+    pub py_obj: Arc<Mutex<PyController>>,
 }
 
 
 impl Default for Controller {
     fn default() -> Self {
+        let transform = TransformBundle::default();
         Self {
-            obj: PyController::__new__(),
+            name: Name::new("Controller"),
+            transform,
             is_init: false,
+            py_obj: Arc::new(Mutex::new(PyController::new(transform.local.translation.into()))),
         }
     }
-}
-
-impl Controller {
-    
 }
 
 impl Controller {
@@ -34,15 +36,19 @@ impl Controller {
             Ok(())
         } else {
             self.update_()
-        }
-       
+        }  
+    }
+    pub fn update_data(&mut self, transform: &Transform) {
+
+        *self.py_obj.lock().unwrap() = PyController::new(self.transform.local.translation.into());   
+    
     }
     fn update_(&mut self) -> Result<(), PyErr> {
         Python::with_gil(|py| {
-            let args = (self.obj.clone(),);
+            let args = (self.py_obj.clone().lock().unwrap().clone(),);
             let controller = py.import("test")?.getattr("loop")?.call1(args)?;
-            println!("{:?}", controller.getattr("id"));
-            self.obj = controller.extract()?;
+            println!("{:?}", controller.getattr("position"));
+            *self.py_obj.lock().unwrap() = controller.extract()?;
             Ok(())
         })
     }
@@ -61,13 +67,13 @@ impl Controller {
             // It can in turn import other stuff as it deems appropriate
             let plugin = PyModule::import(py, "test")?;
 
-            let args = (self.obj.clone(),);
+            let args = (self.py_obj.lock().unwrap().clone(),);
             let controller = plugin.getattr("start")?.call1(args)?;
-            self.obj = controller.extract()?;
+            *self.py_obj.lock().unwrap() = controller.extract()?;
         
             // any modifications we make to rust object are reflected on Python object as well
-            let res: usize = controller.getattr("id")?.extract()?;
-            println!("{res}");
+            let res: (f32, f32, f32) = controller.getattr("position")?.extract()?;
+            println!("{:?}", res);
             Ok(())
         })
     }
