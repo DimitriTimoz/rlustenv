@@ -1,4 +1,4 @@
-use rlustenv_api::{rlustenv_api as pylib_module, PyController};
+use rlustenv_api::PyController;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use std::path::Path;

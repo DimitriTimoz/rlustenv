@@ -1,9 +1,6 @@
-use std::path::Path;
-
 use crate::prelude::*;
 use bevy::prelude::*;
 use bevy_rapier2d::prelude::*;
-use pyo3::{GILGuard, Python};
 
 use crate::components::controller::Controller;
 
