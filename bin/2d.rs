@@ -17,11 +17,6 @@ fn setup_physics(
     /* Create the ground. */
     commands
         .spawn(Collider::cuboid(500.0, 50.0))
-        .insert(Controller {
-            name: "ground".to_string().into(),
-            transform: TransformBundle::from(Transform::from_xyz(0.0, -100.0, 0.0)),
-            ..Default::default()
-        })
         .insert(MaterialMesh2dBundle {
             mesh: meshes
                 .add(Mesh::from(shape::Box::new(1000.0, 100.0, 0.0)))
@@ -35,6 +30,7 @@ fn setup_physics(
     commands
         .spawn(RigidBody::Dynamic)
         .insert(Collider::ball(50.0))
+        .insert(Controller::new("ball"))
         .insert(Restitution::coefficient(0.7))
         .insert(MaterialMesh2dBundle {
             mesh: meshes

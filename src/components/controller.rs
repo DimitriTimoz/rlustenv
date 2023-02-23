@@ -9,25 +9,23 @@ use bevy::prelude::*;
 #[derive(Component, Clone)]
 pub struct Controller {
     pub name: Name,
-    pub transform: TransformBundle,
+    pub transform: Transform,
     pub is_init: bool,
     pub py_obj: Arc<Mutex<PyController>>,
 }
 
 
-impl Default for Controller {
-    fn default() -> Self {
-        let transform = TransformBundle::default();
+ 
+impl Controller {
+    pub fn new(name: &str) -> Self {
+        let transform = Transform::default();
         Self {
-            name: Name::new("Controller"),
+            name: name.into(),
             transform,
             is_init: false,
-            py_obj: Arc::new(Mutex::new(PyController::new(transform.local.translation.into()))),
+            py_obj: Arc::new(Mutex::new(PyController::new(transform.translation.into(), String::from(name)))),
         }
     }
-}
-
-impl Controller {
     pub fn update(&mut self) -> Result<(), PyErr> {
         if !self.is_init {
             info!("Initializing controller");
@@ -38,16 +36,16 @@ impl Controller {
             self.update_()
         }  
     }
-    pub fn update_data(&mut self, transform: &Transform) {
-
-        *self.py_obj.lock().unwrap() = PyController::new(self.transform.local.translation.into());   
-    
+    pub fn update_position(&mut self, transform: &Transform) {
+        self.transform = *transform;
+        let mut py_controller = self.py_obj.lock().unwrap();
+        py_controller.position = self.transform.translation.into();
     }
+
     fn update_(&mut self) -> Result<(), PyErr> {
         Python::with_gil(|py| {
             let args = (self.py_obj.clone().lock().unwrap().clone(),);
             let controller = py.import("test")?.getattr("loop")?.call1(args)?;
-            println!("{:?}", controller.getattr("position"));
             *self.py_obj.lock().unwrap() = controller.extract()?;
             Ok(())
         })
@@ -71,9 +69,6 @@ impl Controller {
             let controller = plugin.getattr("start")?.call1(args)?;
             *self.py_obj.lock().unwrap() = controller.extract()?;
         
-            // any modifications we make to rust object are reflected on Python object as well
-            let res: (f32, f32, f32) = controller.getattr("position")?.extract()?;
-            println!("{:?}", res);
             Ok(())
         })
     }

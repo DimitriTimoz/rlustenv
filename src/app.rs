@@ -57,7 +57,7 @@ impl App {
 
     fn update_controllers(mut controllers: Query<(&mut Controller, &Transform)>) {
         for (mut controller, transform) in controllers.iter_mut() {
-            controller.update_data(transform);
+            controller.update_position(transform);
             match controller.update() {
                 Ok(_) => {}
                 Err(e) => {

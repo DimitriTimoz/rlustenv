@@ -7,6 +7,8 @@ use pyo3::prelude::*;
 pub struct PyController {
     #[pyo3(get)]
     pub position: (f32, f32, f32),
+    #[pyo3(get)]
+    pub name: String,
 }
 
 #[pymethods]
@@ -15,14 +17,16 @@ impl PyController {
     pub fn __new__() -> Self {
         Self {
             position: (0.0, 0.0, 0.0),
+            name: String::from("unknown")
         }
     } 
 }
 
 impl PyController {
-    pub fn new(position: (f32, f32, f32),) -> Self {
+    pub fn new(position: (f32, f32, f32), name: String) -> Self {
         Self {
             position: (position.0, position.1, position.2),
+            name,
         }
     }
 }
