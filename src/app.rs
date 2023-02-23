@@ -1,4 +1,4 @@
-use crate::{prelude::*, ui::setup_ui};
+use crate::{prelude::*, ui::pages::*};
 use bevy::{prelude::*, winit::WinitSettings, diagnostic::FrameTimeDiagnosticsPlugin};
 use bevy_rapier2d::prelude::*;
 
@@ -53,11 +53,12 @@ impl App {
     }
 
     fn add_ui_startup_system(&mut self) {
-        self.app.add_startup_system(setup_ui);
+        self.app.add_startup_system(setup_main_ui);
     }
 
     fn add_ui_system(&mut self) {
         self.app.add_system_to_stage(CoreStage::Update, mouse_scroll);
+        self.app.add_system_to_stage(CoreStage::Update, change_fps_system);
     }
     
 
@@ -68,7 +69,7 @@ impl App {
         #[cfg(feature = "3d")]
         commands.spawn(Camera3dBundle::default());
     }
-    
+
     fn update_controllers(mut controllers: Query<(&mut Controller, &Transform)>) {
         for (mut controller, transform) in controllers.iter_mut() {
             controller.update_position(transform);
