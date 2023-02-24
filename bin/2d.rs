@@ -1,48 +1,87 @@
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
-use bevy_rapier2d::prelude::*;
-use rlustenv::prelude::*;
+use bevy::{prelude::*, sprite::{MaterialMesh2dBundle, DrawMesh2d}};
+use bevy_rapier2d::{
+    rapier::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder},
+    prelude::*,
+};use rlustenv::prelude::*;
 
 fn main() {
-    rlustenv::app::App::new()
-        .add_startup_system(setup_physics)
+    App::new()
+        .add_startup_system(setup)
+        .add_plugin(RlustenvPlugin)
         .run();
 }
 
 
-fn setup_physics(
+fn setup(
     mut commands: Commands,
+    mut configuration: ResMut<RapierConfiguration>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    /* Create the ground. */
-    commands
-        .spawn(Collider::cuboid(500.0, 50.0))
-        .insert(MaterialMesh2dBundle {
-            mesh: meshes
-                .add(Mesh::from(shape::Box::new(1000.0, 100.0, 0.0)))
-                .into(),
-            transform: Transform::default(),
-            material: materials.add(ColorMaterial::from(Color::RED)),
-            ..default()
-        });
-
-    /* Create the bouncing ball. */
-    commands
-        .spawn(RigidBody::Dynamic)
-        .insert(Collider::ball(50.0))
-        .insert(Controller::new("ball"))
-        .insert(Restitution::coefficient(0.7))
-        .insert(MaterialMesh2dBundle {
-            mesh: meshes
-                .add(Mesh::from(shape::Circle {
-                    radius: 50.0,
-                    ..Default::default()
-                }))
-                .into(),
-            transform: Transform::default().with_scale(Vec3::splat(128.)),
+    // Configure Bevy_Rapier physics
+    configuration.gravity = Vec2::new(0.0, -9.81);
+    // Add drone entity
+    let drone_entity = commands
+        .spawn(MaterialMesh2dBundle {
+            mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(50.0, 25.0)))).into(),
             material: materials.add(ColorMaterial::from(Color::PURPLE)),
             ..default()
         })
-        .insert(TransformBundle::from(Transform::from_xyz(0.0, 400.0, 0.0)));
+        .insert(Drone {
+            forward_thrust: 0.0,
+            strafe_thrust: 0.0,
+            angular_thrust: 0.0,
+        })
+        .insert(Controller::new("Drone"))
+        .insert(RigidBody::Dynamic)
+        .insert(Collider::cuboid(25.0, 12.5))
+        .insert(ExternalImpulse {
+            impulse: Vec2::new(0.0, 1.0),
+            torque_impulse: 2.0,
+        })
+
+        .id();
+
+    // Add propulsion entities
+    let propulsion_entity_left = commands
+        .spawn(MaterialMesh2dBundle {
+            mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(10.0, 10.0)))).into(),
+            material: materials.add(ColorMaterial::from(Color::GREEN)),
+            transform: Transform::from_xyz(-25.0, 0.0, 0.0),
+            ..default()
+        })
+        .insert(Propulsion { force: 10.0 })
+        .id();
+
+    let propulsion_entity_right = commands
+        .spawn(MaterialMesh2dBundle {
+            mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(10.0, 10.0)))).into(),
+            material: materials.add(ColorMaterial::from(Color::GREEN)),
+            transform: Transform::from_xyz(25.0, 0.0, 0.0),
+            ..default()
+        })
+        .insert(Propulsion { force: 10.0 })
+        .id();
+
+     // Attach propulsion entities to drone
+     commands
+        .entity(drone_entity)
+        .push_children(&[propulsion_entity_right, propulsion_entity_left]);
+
+
 }
 
+
+
+#[derive(Component, Default)]
+struct Drone {
+    forward_thrust: f32,
+    strafe_thrust: f32,
+    angular_thrust: f32,
+}
+
+#[derive(Component, Default)]
+
+struct Propulsion {
+    force: f32,
+}
