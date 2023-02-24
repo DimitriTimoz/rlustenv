@@ -35,7 +35,7 @@ impl RlustenvPlugin {
         commands.spawn(Camera2dBundle {
             transform: Transform::from_xyz(0.0, 0.0, 100.0),
             projection: OrthographicProjection {
-                scale: 1./5.,
+                scale: 1./80.,
                 ..Default::default()
             },
             ..Default::default()
