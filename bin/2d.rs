@@ -1,11 +1,11 @@
 use std::f32::consts::PI;
 
-use bevy::{prelude::*, sprite::{MaterialMesh2dBundle, DrawMesh2d}};
+use bevy::{prelude::*, sprite::{MaterialMesh2dBundle}};
+use bevy_prototype_debug_lines::DebugLines;
 use bevy_rapier2d::{
     rapier::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder},
     prelude::*,
 };
-use nalgebra::{inf, min, max};
 use rlustenv::prelude::*;
 
 fn main() {
@@ -24,7 +24,7 @@ fn setup(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     // Configure Bevy_Rapier physics
-    configuration.gravity = Vec2::new(0.0, -9.81*0.01);
+    configuration.gravity = Vec2::new(0.0, -9.81);
     // Add drone entity
     let drone_entity = commands
         .spawn(MaterialMesh2dBundle {
@@ -32,14 +32,7 @@ fn setup(
             material: materials.add(ColorMaterial::from(Color::PURPLE)),
             ..default()
         })
-        .insert(Drone {
-            angle1: 0.0,
-            angle2: 0.0,
-
-            thrust1: 0.0,
-            thrust2: 0.0,
-
-        })
+        .insert(Drone)
        // .insert(Controller::new("Drone"))
         .insert(AdditionalMassProperties::Mass(1.0))
         .insert(RigidBody::Dynamic)
@@ -82,16 +75,19 @@ fn setup(
 
 fn update_drone(
     time: Res<Time>,
-    mut drone_query: Query<(&mut Drone, &mut ExternalForce)>,
+    mut drone_query: Query<(&mut ExternalForce, &Transform, With<Drone>, Without<LeftPropulsion>, Without<RightPropulsion>)>,
     mut right_prop_query: Query<(&mut RightPropulsion, &mut Transform, Without<LeftPropulsion>)>,
     mut left_prop_query: Query<(&mut LeftPropulsion, &mut Transform, Without<RightPropulsion>)>,
+    mut lines: ResMut<DebugLines>,
     keys: Res<Input<KeyCode>>,
 ) {
    // let (mut right_prop, mut right_transform) = right_prop_query.single_mut();
     let (mut left_prop, mut left_transform, () ) = left_prop_query.single_mut();
     let (mut right_prop, mut right_transform, () ) = right_prop_query.single_mut();
 
-    for (mut drone, mut ext_force) in drone_query.iter_mut() {
+    for (mut ext_force, trans, _, _, _) in drone_query.iter_mut() {
+        let angle = -trans.rotation.z * PI;
+        info!("Angle: {}", angle);
         let mut dangle1 = 0.0;
         if keys.pressed(KeyCode::Q) {
             dangle1 += 1. * time.delta_seconds();
@@ -111,56 +107,53 @@ fn update_drone(
         }
 
 
-        drone.angle1 += dangle1;
-        drone.angle2 += dangle2;
+        left_prop.angle += dangle1;
+        right_prop.angle += dangle2;
         const MAX_ANGLE: f32 = PI / 4.0;
-        drone.angle1 = drone.angle1.min(MAX_ANGLE).max(-MAX_ANGLE);
-        drone.angle2 = drone.angle2.min(MAX_ANGLE).max(-MAX_ANGLE);
+        left_prop.angle = left_prop.angle.min(MAX_ANGLE).max(-MAX_ANGLE);
+        right_prop.angle = right_prop.angle.min(MAX_ANGLE).max(-MAX_ANGLE);
         let mut thrust1 = 0.0;
 
         if keys.pressed(KeyCode::Z) {
-            thrust1 = 1. * time.delta_seconds();
+            thrust1 = 1.;
         } 
         let mut thrust2 = 0.0;
         if keys.pressed(KeyCode::Up) {
-            thrust2 = 1. * time.delta_seconds();
+            thrust2 = 1.;
         }
         
         let mut torque = 0.0;
-        torque += thrust2 * drone.angle2.cos() - thrust1 * drone.angle1.cos();
-        torque *= 0.0010;
+        torque += thrust2 * right_prop.angle.cos() - thrust1 * left_prop.angle.cos();
+        torque *= 0.0000050;
         ext_force.torque = torque;
         
-        left_transform.rotation = Quat::from_rotation_z(drone.angle1);
-        right_transform.rotation = Quat::from_rotation_z(drone.angle2);
+        left_transform.rotation = Quat::from_rotation_z(left_prop.angle);
+        right_transform.rotation = Quat::from_rotation_z(right_prop.angle);
         // Compute Force
         let mut force = Vec2::new(0.0, 0.0);
 
-        force += Vec2::new(thrust1 * drone.angle1.sin(), thrust1 * drone.angle1.cos());
-        force += Vec2::new(thrust2 * drone.angle2.sin(), thrust2 * drone.angle2.cos());
+        force += Vec2::new(thrust1 * ( angle).sin(), thrust1 * ( angle).cos());
+        force += Vec2::new(thrust2 * ( angle).sin(), thrust2 * (  angle).cos());
 
-        //ext_force.force = force;
+        ext_force.force = force * 15.;
         info!("torque: {}, force {}", torque, force);
 
+        lines.line(trans.translation, trans.translation + Vec3 { x: ext_force.force.x, y: ext_force.force.y, z: 0. }, time.delta_seconds());
     }
 }
 
 
-#[derive(Component, Default)]
-struct Drone {
-    thrust1: f32,
-    angle1: f32,
-
-    thrust2: f32,
-    angle2: f32,
-}
+#[derive(Component)]
+struct Drone;
 
 #[derive(Component, Default)]
 struct RightPropulsion {
     angle: f32,
+    thrust: f32,
 }
 
 #[derive(Component, Default)]
 struct LeftPropulsion {
     angle: f32,
+    thrust: f32,
 }

@@ -6,7 +6,7 @@ edition = "2021"
 [lib]
 
 [dependencies]
-bevy = "0.9.1"
+bevy = { version = "0.9.1", features = ["wayland"] }
 bevy_rapier2d = { version = "0.20.0" }
 
 pyo3={version="0.18", features=["macros", "auto-initialize"]}
@@ -14,6 +14,7 @@ rlustenv_api= { path = "rlustenv_api" }
 bevy_egui = "0.19"
 bevy-inspector-egui = "0.17.0"
 nalgebra = "0.32"
+bevy_prototype_debug_lines = "0.9"
 
 
 

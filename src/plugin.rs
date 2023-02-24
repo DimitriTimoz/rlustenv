@@ -2,6 +2,7 @@ use crate::{prelude::*, ui::pages::*};
 use bevy::{prelude::*, winit::WinitSettings, diagnostic::FrameTimeDiagnosticsPlugin};
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
+use bevy_prototype_debug_lines::DebugLinesPlugin;
 use bevy_rapier2d::prelude::*;
 
 use crate::components::controller::Controller;
@@ -15,6 +16,7 @@ impl Plugin for RlustenvPlugin {
             .add_plugin(RapierDebugRenderPlugin::default())
             .add_plugin(FrameTimeDiagnosticsPlugin)
             .add_plugin(EguiPlugin)
+            .add_plugin(DebugLinesPlugin::default())
             .add_plugin(DefaultInspectorConfigPlugin)    
             .insert_resource(WinitSettings::desktop_app())
             .add_startup_system(Self::setup_camera)
@@ -35,7 +37,7 @@ impl RlustenvPlugin {
         commands.spawn(Camera2dBundle {
             transform: Transform::from_xyz(0.0, 0.0, 100.0),
             projection: OrthographicProjection {
-                scale: 1./80.,
+                scale: 1./50.,
                 ..Default::default()
             },
             ..Default::default()
