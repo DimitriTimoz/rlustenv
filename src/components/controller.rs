@@ -60,6 +60,7 @@ impl DroneController {
         py_controller.angular_velocity = angular_velocity;
         py_controller.position = self.transform.translation.into();
         py_controller.relative_position = relative_position;
+        py_controller.angle = self.transform.rotation.to_axis_angle().1;
     }
 
     /// Update the controller by calling the loop function in the python file
@@ -83,7 +84,6 @@ impl DroneController {
             let syspath: &PyList = py.import("sys")?.getattr("path")?.extract()?;
             syspath.insert(0, path)?;
 
-            // Now we can load our python_plugin/test.py file.
             // It can in turn import other stuff as it deems appropriate
             let plugin = PyModule::import(py, "test")?;
 
