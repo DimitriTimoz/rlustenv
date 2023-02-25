@@ -25,5 +25,5 @@ members = [
 
 
 [[bin]]
-name = "2d"
-path = "./bin/2d.rs"
+name = "drone"
+path = "./bin/drone.rs"

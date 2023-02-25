@@ -1,11 +1,6 @@
-use std::f32::consts::PI;
 
 use bevy::{prelude::*, sprite::{MaterialMesh2dBundle}};
-use bevy_prototype_debug_lines::DebugLines;
-use bevy_rapier2d::{
-    rapier::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder, prelude::RigidBodyVelocity},
-    prelude::*,
-};
+use bevy_rapier2d::prelude::*;
 use rlustenv::prelude::*;
 
 fn main() {
