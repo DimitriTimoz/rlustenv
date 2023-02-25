@@ -8,6 +8,6 @@ positions = []
 def loop(controller: DroneController):
     """loop function, called every frame"""
     global a
-    a += 1
-    print(a)
+    print(controller.position)
+    print(controller.velocity)
     return controller
