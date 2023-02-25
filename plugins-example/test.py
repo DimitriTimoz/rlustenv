@@ -10,6 +10,11 @@ def loop(controller: DroneController):
     global a
     print(controller.position)
     print(controller.velocity)
-    controller.thrust_left = 0.5
-    controller.thrust_right = 0.5
+    controller.thrust_left = 0.0
+    controller.thrust_right = 0.0
     return controller
+
+def end(controller: DroneController, reason: str):
+    """called when the simulation ends"""
+    print("Simulation ended because of: " + reason)
+

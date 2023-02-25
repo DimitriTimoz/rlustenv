@@ -6,6 +6,8 @@ use std::sync::{Arc, Mutex};
 
 use bevy::prelude::*;
 
+use crate::prelude::*;
+
 #[derive(Component, Clone)]
 pub struct DroneController {
     pub name: Name,
@@ -13,7 +15,6 @@ pub struct DroneController {
     pub is_init: bool,
     pub py_obj: Arc<Mutex<PyDroneDroneController>>,
 }
-
 
  
 impl DroneController {
@@ -89,6 +90,14 @@ impl DroneController {
             let controller = plugin.getattr("start")?.call1(args)?;
             *self.py_obj.lock().unwrap() = controller.extract()?;
         
+            Ok(())
+        })
+    }
+    /// End the controller by calling the end function in the python file
+    pub fn end(&mut self, reason: DroneEndReason) -> Result<(), PyErr> {
+        Python::with_gil(|py| {
+            let args = (self.py_obj.lock().unwrap().clone(), reason.to_string());
+            let _ = py.import("test")?.getattr("end")?.call1(args)?;
             Ok(())
         })
     }

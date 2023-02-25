@@ -6,6 +6,21 @@ use bevy_rapier2d::prelude::*;
 
 use crate::prelude::*;
 
+pub enum DroneEndReason {
+    OutOfBounds,
+    Dead,
+}
+
+impl DroneEndReason {
+    pub fn to_string(&self) -> String {
+        match self {
+            DroneEndReason::OutOfBounds => "out_of_bounds".to_string(),
+            DroneEndReason::Dead => "dead".to_string(),
+        }
+    }
+}
+    
+
 #[derive(Bundle)]
 pub struct DroneBundle {
     pub controller: DroneController,
@@ -41,6 +56,14 @@ pub struct LeftPropulsion {
     angle: f32,
     thrust: f32,
 }
+type DroneQuery<'a> = (
+    &'a mut ExternalForce,
+    &'a Transform,
+    &'a Velocity,
+    With<Drone>,
+    Without<LeftPropulsion>,
+    Without<RightPropulsion>,
+);
 
 impl DroneBundle {
     pub fn update_drone_inputs(
@@ -90,14 +113,7 @@ impl DroneBundle {
     }
 
     pub fn update_drone(
-        mut drone_query: Query<(
-            &mut ExternalForce,
-            &Transform,
-            &Velocity,
-            With<Drone>,
-            Without<LeftPropulsion>,
-            Without<RightPropulsion>,
-        )>,
+        mut drone_query: Query<DroneQuery>,
         mut right_prop_query: Query<(
             &mut RightPropulsion,
             &mut Transform,
@@ -189,5 +205,35 @@ impl DroneBundle {
                 Color::BLUE,
             );
         }
+    }
+
+    pub fn check_end(
+        mut drone_query: Query<DroneQuery>,
+        mut drone_controller_query: Query<&mut DroneController>,
+    ) {
+        let mut drone_controller = drone_controller_query.single_mut();
+        let mut end = None;
+        for (mut ext_force, transfrom, velocity, _, _, _) in drone_query.iter_mut() {
+            if transfrom.translation.y < 0. {
+                end = Some(DroneEndReason::OutOfBounds);
+            }
+        }
+
+        if let Some(reason) = end  {
+            match drone_controller.end(reason) {
+                Ok(_) => {}
+                Err(e) => {
+                    error!("Error while ending the drone: {}", e);
+                }
+            }
+        }
+    }
+
+    /// Detect if the drone failed
+    pub fn get_system_set() -> SystemSet {
+        SystemSet::new()
+            .with_system(Self::update_drone_inputs)
+            .with_system(Self::update_drone)
+            .with_system(Self::check_end)
     }
 }
