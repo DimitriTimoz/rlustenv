@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 use bevy_prototype_debug_lines::DebugLines;
 use bevy_rapier2d::prelude::*;
 
@@ -10,6 +10,8 @@ use crate::prelude::*;
 pub enum DroneEndReason {
     OutOfBounds,
     Dead,
+    Crashed,
+    ReachedTarget,
 }
 
 impl DroneEndReason {
@@ -17,6 +19,8 @@ impl DroneEndReason {
         match self {
             DroneEndReason::OutOfBounds => "out_of_bounds".to_string(),
             DroneEndReason::Dead => "dead".to_string(),
+            DroneEndReason::Crashed => "crashed".to_string(),
+            DroneEndReason::ReachedTarget => "reached_target".to_string(),
         }
     }
 }
@@ -42,6 +46,57 @@ impl Default for DroneBundle {
             velocity: Velocity::default(),
             drone: Drone,
         }
+    }
+}
+
+impl DroneBundle {
+    pub fn do_spawn_drone(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<ColorMaterial>>) {
+        // Add drone entity
+        let drone_entity = commands
+            .spawn(MaterialMesh2dBundle {
+                mesh: meshes
+                    .add(Mesh::from(shape::Quad::new(Vec2::new(0.5, 0.25))))
+                    .into(),
+                material: materials.add(ColorMaterial::from(Color::PURPLE)),
+                ..default()
+            })
+            .insert(DroneBundle::default())
+            .insert(Collider::cuboid(0.25, 0.125))
+            .insert(ExternalForce {
+                force: Vec2::new(0.0, 0.0),
+                torque: 0.0,
+            })
+            .id();
+
+        // Add propulsion entities
+        let propulsion_entity_left = commands
+            .spawn(MaterialMesh2dBundle {
+                mesh: meshes
+                    .add(Mesh::from(shape::Quad::new(Vec2::new(0.10, 0.2))))
+                    .into(),
+                material: materials.add(ColorMaterial::from(Color::GREEN)),
+                transform: Transform::from_xyz(-0.250, 0.1, 1.0),
+                ..default()
+            })
+            .insert(LeftPropulsion::default())
+            .id();
+
+        let propulsion_entity_right = commands
+            .spawn(MaterialMesh2dBundle {
+                mesh: meshes
+                    .add(Mesh::from(shape::Quad::new(Vec2::new(0.1, 0.2))))
+                    .into(),
+                material: materials.add(ColorMaterial::from(Color::GREEN)),
+                transform: Transform::from_xyz(0.250, 0.1, 1.0),
+                ..default()
+            })
+            .insert(RightPropulsion::default())
+            .id();
+
+        // Attach propulsion entities to drone
+        commands
+            .entity(drone_entity)
+            .push_children(&[propulsion_entity_right, propulsion_entity_left]);
     }
 }
 
@@ -121,7 +176,13 @@ impl DroneBundle {
     }
 
     pub fn update_drone(
-        target_query: Query<(&Transform, With<Target>, Without<Drone>, Without<LeftPropulsion>, Without<RightPropulsion>)>,
+        target_query: Query<(
+            &Transform,
+            With<Target>,
+            Without<Drone>,
+            Without<LeftPropulsion>,
+            Without<RightPropulsion>,
+        )>,
         mut drone_query: Query<DroneQuery>,
         mut right_prop_query: Query<(
             &mut RightPropulsion,
@@ -198,7 +259,6 @@ impl DroneBundle {
                 velocity.angvel,
                 (target.translation - trans.translation).truncate().into(),
             );
-            info!("torque: {}, force {}", torque, force);
 
             lines.line_colored(
                 trans.translation,
@@ -234,13 +294,31 @@ impl DroneBundle {
             &mut DroneController,
             Without<LeftPropulsion>,
         )>,
+        // Get the target
+        target_query: Query<(&Transform, With<Target>)>,
+
+        // To spawn a new drone
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut materials: ResMut<Assets<ColorMaterial>>,
     ) {
+        let target = target_query.single().0;
         for (entity, transfrom, _velocity, mut drone_controller, _) in drone_query.iter_mut() {
             let mut end = None;
 
             if transfrom.translation.y < -10. {
                 end = Some(DroneEndReason::OutOfBounds);
             }
+
+            if transfrom.rotation.z.abs() > 0.5 {
+                end = Some(DroneEndReason::Crashed);
+            }
+
+            if (target.translation - transfrom.translation).length() < 1. {
+                end = Some(DroneEndReason::ReachedTarget);
+            } else if (target.translation - transfrom.translation).length() > 40. {
+                end = Some(DroneEndReason::OutOfBounds);
+            }
+
             if let Some(reason) = end {
                 match drone_controller.end(reason.clone()) {
                     Ok(_) => {}
@@ -248,20 +326,19 @@ impl DroneBundle {
                         error!("Error while ending the drone: {}", e);
                     }
                 }
-                info!("Drone ended with reason: {}", reason.to_string());
                 commands.entity(entity).despawn_descendants();
                 commands.entity(entity).despawn();
-            }
-    
-        }
 
+                DroneBundle::do_spawn_drone(&mut commands, &mut meshes, &mut materials);
+            }
+        }
     }
 
     /// Detect if the drone failed
     pub fn get_system_set() -> SystemSet {
         SystemSet::new()
+            .with_system(Self::check_end)
             .with_system(Self::update_drone_inputs)
             .with_system(Self::update_drone)
-            .with_system(Self::check_end)
     }
 }

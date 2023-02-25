@@ -4,17 +4,12 @@ const CAMERA_SPEED_PER_SEC: f32 = 1.0;
 
 fn zoom_system(
     mut mouse_wheel_events: EventReader<MouseWheel>,
-    windows: Res<Windows>,
-    mouse_position: Res<Events<CursorMoved>>,
-    mut query: Query<(&mut Transform, &mut Camera, &mut Camera2D)>,
+    mut query: Query<(&mut Transform, &mut OrthographicProjection, &mut Camera2D)>,
 ) {
     for event in mouse_wheel_events.iter() {
-        for (mut transform, mut camera, cam2d) in query.iter_mut() {
-            let window = windows.get_primary().expect("no primary window");
-            let aspect_ratio = window.width() / window.height();
+        for (mut transform, mut ortho, cam2d) in query.iter_mut() {
             let zoom_delta = event.y * cam2d.zoom_speed;
-            let new_zoom = (transform.scale.x - zoom_delta).clamp(cam2d.min, cam2d.max);
-            transform.scale = Vec3::new(new_zoom, new_zoom / aspect_ratio, 1.0);
+            ortho.scale -= zoom_delta;
         }
     }
 }

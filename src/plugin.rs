@@ -40,7 +40,7 @@ impl RlustenvPlugin {
         commands.spawn(Camera2dBundle {
             transform: Transform::from_xyz(0.0, 0.0, 100.0),
             projection: OrthographicProjection {
-                scale: 1./50.,
+                scale: 1./25.,
 
                 ..Default::default()
             },
@@ -55,7 +55,7 @@ impl RlustenvPlugin {
             match controller.update() {
                 Ok(_) => {}
                 Err(e) => {
-                    error!("Error: {e:?}");
+                    error!("Error: {e}");
                 }
             }
         }

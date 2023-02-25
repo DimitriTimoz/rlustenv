@@ -15,6 +15,8 @@ pub struct PyDroneDroneController {
     pub angular_velocity: f32,
     #[pyo3(get)]
     pub relative_position: (f32, f32),
+    #[pyo3(get)]
+    pub angle: f32,
 
     #[pyo3(set)]
     pub thrust_left: f32,
@@ -40,6 +42,7 @@ impl PyDroneDroneController {
             thrust_right: 0.0,
             thrust_left_angle: 0.0,
             thrust_right_angle: 0.0,
+            angle: 0.0,
         }
     } 
 }
@@ -56,6 +59,7 @@ impl PyDroneDroneController {
             thrust_right: 0.0,
             thrust_left_angle: 0.0,
             thrust_right_angle: 0.0,
+            angle: 0.0,
         }
     }
 }
