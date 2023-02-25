@@ -90,7 +90,6 @@ impl DroneBundle {
     }
 
     pub fn update_drone(
-        time: Res<Time>,
         mut drone_query: Query<(
             &mut ExternalForce,
             &Transform,
@@ -109,6 +108,7 @@ impl DroneBundle {
             &mut Transform,
             Without<RightPropulsion>,
         )>,
+        mut drone_controller_query: Query<&mut DroneController>,
         mut lines: ResMut<DebugLines>,
     ) {
         // let (mut right_prop, mut right_transform) = right_prop_query.single_mut();
@@ -117,7 +117,18 @@ impl DroneBundle {
 
         for (mut ext_force, trans, velocity, _, _, _) in drone_query.iter_mut() {
             let angle = -trans.rotation.z * PI;
+
+            // Get the inputs given by the controller
+            let drone_controller = drone_controller_query.single();
+            let (left_thrust, right_thrust) = drone_controller.get_thrust();
+            let (left_angle, right_angle) = drone_controller.get_thrust_angle();
             
+            // Update the propellers
+            left_prop.angle = left_angle;
+            right_prop.angle = right_angle;
+            left_prop.thrust = left_thrust;
+            right_prop.thrust = right_thrust;
+
             const MAX_ANGLE: f32 = PI / 4.0;
             left_prop.angle = left_prop.angle.clamp(-MAX_ANGLE, MAX_ANGLE);
             right_prop.angle = right_prop.angle.clamp(-MAX_ANGLE, MAX_ANGLE);
@@ -146,6 +157,13 @@ impl DroneBundle {
             );
 
             ext_force.force = force * 15.;
+
+            // Update drone controller
+            drone_controller_query.single_mut().update_properties(
+                        trans,
+                        velocity.linvel.into(),
+                        velocity.angvel,
+            );
             info!("torque: {}, force {}", torque, force);
 
             lines.line_colored(

@@ -26,6 +26,20 @@ impl DroneController {
             py_obj: Arc::new(Mutex::new(PyDroneDroneController::new(transform.translation.into(), String::from(name)))),
         }
     }
+
+    /// Get the thrust of the (left, right) propellers
+    pub fn get_thrust(&self) -> (f32, f32) {
+        let py_controller = self.py_obj.lock().unwrap();
+        (py_controller.thrust_left, py_controller.thrust_right)
+    }
+
+    /// Get the angle of the (left, right) propellers
+    pub fn get_thrust_angle(&self) -> (f32, f32) {
+        let py_controller = self.py_obj.lock().unwrap();
+        (py_controller.thrust_left_angle, py_controller.thrust_right_angle)
+    }
+
+    /// Update the controller by calling the loop function in the python file or the start function if the controller is not initialized
     pub fn update(&mut self) -> Result<(), PyErr> {
         if !self.is_init {
             info!("Initializing drone controller");
@@ -36,6 +50,8 @@ impl DroneController {
             self.update_()
         }  
     }
+
+    /// Update the properties of the controller
     pub fn update_properties(&mut self, transform: &Transform, velocity: (f32, f32), angular_velocity: f32) {
         self.transform = *transform;
         let mut py_controller = self.py_obj.lock().unwrap();
@@ -44,6 +60,7 @@ impl DroneController {
         py_controller.position = self.transform.translation.into();
     }
 
+    /// Update the controller by calling the loop function in the python file
     fn update_(&mut self) -> Result<(), PyErr> {
         Python::with_gil(|py| {
             let args = (self.py_obj.clone().lock().unwrap().clone(),);
@@ -53,6 +70,7 @@ impl DroneController {
         })
     }
 
+    /// Initialize the controller by calling the start function in the python file
     fn init(&mut self) -> Result<(), PyErr> {
         //import path for python
         let path = Path::new("./plugins-example/");

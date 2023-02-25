@@ -10,4 +10,6 @@ def loop(controller: DroneController):
     global a
     print(controller.position)
     print(controller.velocity)
+    controller.thrust_left = 0.5
+    controller.thrust_right = 0.5
     return controller

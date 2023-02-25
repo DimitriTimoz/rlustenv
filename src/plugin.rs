@@ -52,9 +52,8 @@ impl RlustenvPlugin {
         commands.spawn(Camera3dBundle::default());
     }
 
-    fn update_controllers(mut controllers: Query<(&mut DroneController, &Transform, &Velocity)>) {
-        for (mut controller, transform, velocity) in controllers.iter_mut() {
-            controller.update_properties(transform, velocity.linvel.into(), velocity.angvel);
+    fn update_controllers(mut controllers: Query<&mut DroneController>) {
+        for mut controller in controllers.iter_mut() {
             match controller.update() {
                 Ok(_) => {}
                 Err(e) => {
