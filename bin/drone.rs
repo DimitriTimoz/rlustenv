@@ -24,7 +24,7 @@ fn setup(
     // Add Drone entity
     DroneBundle::do_spawn_drone(&mut commands, &mut meshes, &mut materials);
     // Add ground entity
-    commands
+    /*commands
         .spawn(MaterialMesh2dBundle {
             mesh: meshes.add(Mesh::from(shape::Quad::new(Vec2::new(100.0, 1.0)))).into(),
             material: materials.add(ColorMaterial::from(Color::BLACK)),
@@ -33,10 +33,10 @@ fn setup(
         })
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(50.0, 0.5));
-
+    */
     // Add target entity
     commands
-        .spawn(TargetBundle::new(Vec3 { x: 0.0, y: 0.0, z: 0.0}, Vec3 { x: 0.5, y: 0.5, z: 0.0}, asset_server));
+        .spawn(TargetBundle::new(Vec3 { x: 4.0, y: 5.0, z: 0.0}, Vec3 { x: 0.5, y: 0.5, z: 0.0}, asset_server));
     
   
 }

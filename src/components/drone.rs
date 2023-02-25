@@ -223,7 +223,7 @@ impl DroneBundle {
             left_prop.thrust = left_thrust;
             right_prop.thrust = right_thrust;
 
-            const MAX_ANGLE: f32 = PI / 4.0;
+            const MAX_ANGLE: f32 = PI / 3.0;
             left_prop.angle = left_prop.angle.clamp(-MAX_ANGLE, MAX_ANGLE);
             right_prop.angle = right_prop.angle.clamp(-MAX_ANGLE, MAX_ANGLE);
 
@@ -313,9 +313,9 @@ impl DroneBundle {
                 end = Some(DroneEndReason::Crashed);
             }
 
-            if (target.translation - transfrom.translation).length() < 1. {
+            if (target.translation - transfrom.translation).length() < 0.1 {
                 end = Some(DroneEndReason::ReachedTarget);
-            } else if (target.translation - transfrom.translation).length() > 40. {
+            } else if (target.translation - transfrom.translation).length() > 50. {
                 end = Some(DroneEndReason::OutOfBounds);
             }
 

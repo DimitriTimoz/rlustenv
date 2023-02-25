@@ -1,5 +1,5 @@
 use crate::{prelude::*, ui::pages::*};
-use bevy::{prelude::*, winit::WinitSettings, diagnostic::FrameTimeDiagnosticsPlugin};
+use bevy::{prelude::*, winit::{WinitSettings, UpdateMode}, diagnostic::FrameTimeDiagnosticsPlugin};
 use bevy_egui::EguiPlugin;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use bevy_prototype_debug_lines::DebugLinesPlugin;
@@ -18,7 +18,11 @@ impl Plugin for RlustenvPlugin {
             .add_plugin(EguiPlugin)
             .add_plugin(DebugLinesPlugin::default())
             .add_plugin(DefaultInspectorConfigPlugin)
-            .insert_resource(WinitSettings::desktop_app())
+            .insert_resource(WinitSettings{
+                focused_mode: UpdateMode::Continuous,
+                unfocused_mode: UpdateMode::Continuous,
+                ..Default::default()
+            })
             .add_event::<CursorMoved>()
             .add_startup_system(Self::setup_camera)
             .add_startup_system(setup_main_ui)
