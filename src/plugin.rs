@@ -17,11 +17,14 @@ impl Plugin for RlustenvPlugin {
             .add_plugin(FrameTimeDiagnosticsPlugin)
             .add_plugin(EguiPlugin)
             .add_plugin(DebugLinesPlugin::default())
-            .add_plugin(DefaultInspectorConfigPlugin)    
+            .add_plugin(DefaultInspectorConfigPlugin)
+            .insert_resource(Zoom::default())    
             .insert_resource(WinitSettings::desktop_app())
+            .add_event::<CursorMoved>()
             .add_startup_system(Self::setup_camera)
             .add_startup_system(setup_main_ui)
             .add_system(change_fps_system)
+            .add_system(zoom_system)
             .add_system(update_hierachy)
             .add_system(Self::update_controllers);
         pyo3::append_to_inittab!(pylib_module);
@@ -38,6 +41,7 @@ impl RlustenvPlugin {
             transform: Transform::from_xyz(0.0, 0.0, 100.0),
             projection: OrthographicProjection {
                 scale: 1./50.,
+                
                 ..Default::default()
             },
             ..Default::default()
