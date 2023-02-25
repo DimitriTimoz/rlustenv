@@ -5,7 +5,7 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use bevy_prototype_debug_lines::DebugLinesPlugin;
 use bevy_rapier2d::prelude::*;
 
-use crate::components::controller::Controller;
+use crate::components::controller::DroneController;
 
 pub struct RlustenvPlugin;
 
@@ -23,6 +23,7 @@ impl Plugin for RlustenvPlugin {
             .add_event::<CursorMoved>()
             .add_startup_system(Self::setup_camera)
             .add_startup_system(setup_main_ui)
+            .add_system(DroneBundle::update_drone)
             .add_system(change_fps_system)
             .add_system(zoom_system)
             .add_system(update_hierachy)
@@ -41,7 +42,7 @@ impl RlustenvPlugin {
             transform: Transform::from_xyz(0.0, 0.0, 100.0),
             projection: OrthographicProjection {
                 scale: 1./50.,
-                
+
                 ..Default::default()
             },
             ..Default::default()
@@ -50,7 +51,7 @@ impl RlustenvPlugin {
         commands.spawn(Camera3dBundle::default());
     }
 
-    fn update_controllers(mut controllers: Query<(&mut Controller, &Transform)>) {
+    fn update_controllers(mut controllers: Query<(&mut DroneController, &Transform)>) {
         for (mut controller, transform) in controllers.iter_mut() {
             controller.update_position(transform);
             match controller.update() {

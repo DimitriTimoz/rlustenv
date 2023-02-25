@@ -1,4 +1,4 @@
-use rlustenv_api::PyController;
+use rlustenv_api::PyDroneDroneController;
 use pyo3::prelude::*;
 use pyo3::types::PyList;
 use std::path::Path;
@@ -7,23 +7,23 @@ use std::sync::{Arc, Mutex};
 use bevy::prelude::*;
 
 #[derive(Component, Clone)]
-pub struct Controller {
+pub struct DroneController {
     pub name: Name,
     pub transform: Transform,
     pub is_init: bool,
-    pub py_obj: Arc<Mutex<PyController>>,
+    pub py_obj: Arc<Mutex<PyDroneDroneController>>,
 }
 
 
  
-impl Controller {
+impl DroneController {
     pub fn new(name: &str) -> Self {
         let transform = Transform::default();
         Self {
             name: name.into(),
             transform,
             is_init: false,
-            py_obj: Arc::new(Mutex::new(PyController::new(transform.translation.into(), String::from(name)))),
+            py_obj: Arc::new(Mutex::new(PyDroneDroneController::new(transform.translation.into(), String::from(name)))),
         }
     }
     pub fn update(&mut self) -> Result<(), PyErr> {
