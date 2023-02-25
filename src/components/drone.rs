@@ -121,6 +121,7 @@ impl DroneBundle {
     }
 
     pub fn update_drone(
+        target_query: Query<(&Transform, With<Target>, Without<Drone>, Without<LeftPropulsion>, Without<RightPropulsion>)>,
         mut drone_query: Query<DroneQuery>,
         mut right_prop_query: Query<(
             &mut RightPropulsion,
@@ -142,7 +143,8 @@ impl DroneBundle {
         if right_prop_query.iter().count() == 0 {
             return;
         }
-        // let (mut right_prop, mut right_transform) = right_prop_query.single_mut();
+
+        let target = target_query.single().0;
         let (mut left_prop, mut left_transform, ()) = left_prop_query.single_mut();
         let (mut right_prop, mut right_transform, ()) = right_prop_query.single_mut();
 
@@ -194,6 +196,7 @@ impl DroneBundle {
                 trans,
                 velocity.linvel.into(),
                 velocity.angvel,
+                (target.translation - trans.translation).truncate().into(),
             );
             info!("torque: {}, force {}", torque, force);
 

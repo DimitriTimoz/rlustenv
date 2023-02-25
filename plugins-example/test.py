@@ -1,3 +1,4 @@
+import tensorflow as tf
 from rlustenv_api import *
 
 def start(controller: DroneController):
@@ -8,7 +9,7 @@ positions = []
 def loop(controller: DroneController):
     """loop function, called every frame"""
     global a
-    print(controller.position)
+    print(controller.relative_position)
     print(controller.velocity)
     controller.thrust_left = 0.0
     controller.thrust_right = 0.0

@@ -53,12 +53,13 @@ impl DroneController {
     }
 
     /// Update the properties of the controller
-    pub fn update_properties(&mut self, transform: &Transform, velocity: (f32, f32), angular_velocity: f32) {
+    pub fn update_properties(&mut self, transform: &Transform, velocity: (f32, f32), angular_velocity: f32, relative_position: (f32, f32)) {
         self.transform = *transform;
         let mut py_controller = self.py_obj.lock().unwrap();
         py_controller.velocity = velocity;
         py_controller.angular_velocity = angular_velocity;
         py_controller.position = self.transform.translation.into();
+        py_controller.relative_position = relative_position;
     }
 
     /// Update the controller by calling the loop function in the python file

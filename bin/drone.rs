@@ -14,6 +14,7 @@ fn main() {
 fn setup(
     mut commands: Commands,
     mut configuration: ResMut<RapierConfiguration>,
+    asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
@@ -72,7 +73,11 @@ fn setup(
         .insert(RigidBody::Fixed)
         .insert(Collider::cuboid(50.0, 0.5));
 
-
+    // Add target entity
+    commands
+        .spawn(TargetBundle::new(Vec3 { x: 0.0, y: 0.0, z: 0.0}, Vec3 { x: 0.5, y: 0.5, z: 0.0}, asset_server));
+    
+  
 }
 
 
