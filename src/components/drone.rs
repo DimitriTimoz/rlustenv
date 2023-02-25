@@ -6,6 +6,7 @@ use bevy_rapier2d::prelude::*;
 
 use crate::prelude::*;
 
+#[derive(Clone)]
 pub enum DroneEndReason {
     OutOfBounds,
     Dead,
@@ -19,7 +20,6 @@ impl DroneEndReason {
         }
     }
 }
-    
 
 #[derive(Bundle)]
 pub struct DroneBundle {
@@ -72,6 +72,14 @@ impl DroneBundle {
         mut right_prop_query: Query<&mut RightPropulsion>,
         mut left_prop_query: Query<&mut LeftPropulsion>,
     ) {
+        if left_prop_query.iter().count() == 0 {
+            return;
+        }
+
+        if right_prop_query.iter().count() == 0 {
+            return;
+        }
+
         let mut left_prop = left_prop_query.single_mut();
         let mut right_prop = right_prop_query.single_mut();
 
@@ -127,6 +135,13 @@ impl DroneBundle {
         mut drone_controller_query: Query<&mut DroneController>,
         mut lines: ResMut<DebugLines>,
     ) {
+        if left_prop_query.iter().count() == 0 {
+            return;
+        }
+
+        if right_prop_query.iter().count() == 0 {
+            return;
+        }
         // let (mut right_prop, mut right_transform) = right_prop_query.single_mut();
         let (mut left_prop, mut left_transform, ()) = left_prop_query.single_mut();
         let (mut right_prop, mut right_transform, ()) = right_prop_query.single_mut();
@@ -138,7 +153,7 @@ impl DroneBundle {
             let drone_controller = drone_controller_query.single();
             let (left_thrust, right_thrust) = drone_controller.get_thrust();
             let (left_angle, right_angle) = drone_controller.get_thrust_angle();
-            
+
             // Update the propellers
             left_prop.angle = left_angle;
             right_prop.angle = right_angle;
@@ -176,9 +191,9 @@ impl DroneBundle {
 
             // Update drone controller
             drone_controller_query.single_mut().update_properties(
-                        trans,
-                        velocity.linvel.into(),
-                        velocity.angvel,
+                trans,
+                velocity.linvel.into(),
+                velocity.angvel,
             );
             info!("torque: {}, force {}", torque, force);
 
@@ -208,25 +223,35 @@ impl DroneBundle {
     }
 
     pub fn check_end(
-        mut drone_query: Query<DroneQuery>,
-        mut drone_controller_query: Query<&mut DroneController>,
+        mut commands: Commands,
+        mut drone_query: Query<(
+            Entity,
+            &Transform,
+            &Velocity,
+            &mut DroneController,
+            Without<LeftPropulsion>,
+        )>,
     ) {
-        let mut drone_controller = drone_controller_query.single_mut();
-        let mut end = None;
-        for (mut ext_force, transfrom, velocity, _, _, _) in drone_query.iter_mut() {
-            if transfrom.translation.y < 0. {
+        for (entity, transfrom, _velocity, mut drone_controller, _) in drone_query.iter_mut() {
+            let mut end = None;
+
+            if transfrom.translation.y < -10. {
                 end = Some(DroneEndReason::OutOfBounds);
             }
+            if let Some(reason) = end {
+                match drone_controller.end(reason.clone()) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        error!("Error while ending the drone: {}", e);
+                    }
+                }
+                info!("Drone ended with reason: {}", reason.to_string());
+                commands.entity(entity).despawn_descendants();
+                commands.entity(entity).despawn();
+            }
+    
         }
 
-        if let Some(reason) = end  {
-            match drone_controller.end(reason) {
-                Ok(_) => {}
-                Err(e) => {
-                    error!("Error while ending the drone: {}", e);
-                }
-            }
-        }
     }
 
     /// Detect if the drone failed

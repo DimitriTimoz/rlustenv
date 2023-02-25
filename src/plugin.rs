@@ -18,14 +18,13 @@ impl Plugin for RlustenvPlugin {
             .add_plugin(EguiPlugin)
             .add_plugin(DebugLinesPlugin::default())
             .add_plugin(DefaultInspectorConfigPlugin)
-            .insert_resource(Zoom::default())    
             .insert_resource(WinitSettings::desktop_app())
             .add_event::<CursorMoved>()
             .add_startup_system(Self::setup_camera)
             .add_startup_system(setup_main_ui)
             .add_system_set(DroneBundle::get_system_set())
             .add_system(change_fps_system)
-            .add_system(zoom_system)
+            .add_system_set(camera_system_set())
             .add_system(update_hierachy)
             .add_system(Self::update_controllers);
         pyo3::append_to_inittab!(pylib_module);
@@ -46,7 +45,7 @@ impl RlustenvPlugin {
                 ..Default::default()
             },
             ..Default::default()
-        });
+        }).insert(Camera2D::default());
         #[cfg(feature = "3d")]
         commands.spawn(Camera3dBundle::default());
     }
