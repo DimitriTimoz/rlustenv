@@ -28,7 +28,7 @@ impl DroneController {
     }
     pub fn update(&mut self) -> Result<(), PyErr> {
         if !self.is_init {
-            info!("Initializing controller");
+            info!("Initializing drone controller");
             self.init()?;
             self.is_init = true;
             Ok(())
@@ -36,9 +36,11 @@ impl DroneController {
             self.update_()
         }  
     }
-    pub fn update_position(&mut self, transform: &Transform) {
+    pub fn update_properties(&mut self, transform: &Transform, velocity: (f32, f32), angular_velocity: f32) {
         self.transform = *transform;
         let mut py_controller = self.py_obj.lock().unwrap();
+        py_controller.velocity = velocity;
+        py_controller.angular_velocity = angular_velocity;
         py_controller.position = self.transform.translation.into();
     }
 

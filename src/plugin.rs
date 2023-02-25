@@ -23,6 +23,7 @@ impl Plugin for RlustenvPlugin {
             .add_event::<CursorMoved>()
             .add_startup_system(Self::setup_camera)
             .add_startup_system(setup_main_ui)
+            .add_system(DroneBundle::update_drone_inputs)
             .add_system(DroneBundle::update_drone)
             .add_system(change_fps_system)
             .add_system(zoom_system)
@@ -51,9 +52,9 @@ impl RlustenvPlugin {
         commands.spawn(Camera3dBundle::default());
     }
 
-    fn update_controllers(mut controllers: Query<(&mut DroneController, &Transform)>) {
-        for (mut controller, transform) in controllers.iter_mut() {
-            controller.update_position(transform);
+    fn update_controllers(mut controllers: Query<(&mut DroneController, &Transform, &Velocity)>) {
+        for (mut controller, transform, velocity) in controllers.iter_mut() {
+            controller.update_properties(transform, velocity.linvel.into(), velocity.angvel);
             match controller.update() {
                 Ok(_) => {}
                 Err(e) => {
