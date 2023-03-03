@@ -3,6 +3,7 @@ use std::f32::consts::PI;
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 use bevy_prototype_debug_lines::DebugLines;
 use bevy_rapier2d::prelude::*;
+use rand::Rng;
 
 use crate::prelude::*;
 
@@ -51,7 +52,11 @@ impl Default for DroneBundle {
 
 impl DroneBundle {
     pub fn do_spawn_drone(commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<ColorMaterial>>) {
-        // Add drone entity
+        // Add drone entity to a random position
+
+        let mut rng = rand::thread_rng();
+        let random_vec = Vec2::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0)) * 10.0;
+
         let drone_entity = commands
             .spawn(MaterialMesh2dBundle {
                 mesh: meshes
@@ -62,6 +67,7 @@ impl DroneBundle {
             })
             .insert(DroneBundle::default())
             .insert(Collider::cuboid(0.25, 0.125))
+            .insert(TransformBundle::from(Transform::from_xyz(random_vec.x, random_vec.y, 0.0)))
             .insert(ExternalForce {
                 force: Vec2::new(0.0, 0.0),
                 torque: 0.0,
@@ -305,17 +311,14 @@ impl DroneBundle {
         for (entity, transfrom, _velocity, mut drone_controller, _) in drone_query.iter_mut() {
             let mut end = None;
 
-            if transfrom.translation.y < -10. {
-                end = Some(DroneEndReason::OutOfBounds);
-            }
-
-            if transfrom.rotation.z.abs() > 0.5 {
+      
+            if transfrom.rotation.z.abs() > 0.6 {
                 end = Some(DroneEndReason::Crashed);
             }
 
             if (target.translation - transfrom.translation).length() < 0.1 {
                 end = Some(DroneEndReason::ReachedTarget);
-            } else if (target.translation - transfrom.translation).length() > 50. {
+            } else if (target.translation - transfrom.translation).length() > 200. {
                 end = Some(DroneEndReason::OutOfBounds);
             }
 

@@ -12,37 +12,37 @@ import time
 num_actions = 2 + 2 
 num_input = 2 + 2 + 1 + 1
 learning_rate = 1e-3
-gamma = 0.99
-epsilon = 0.1
-decision_rate = 12.
+gamma = 0.9
+epsilon = 0.05
+decision_rate = 5.
 n_episodes = 0
 
 plt.switch_backend('agg')
 
-reward_history = []
+reward_history = deque(maxlen=1000)
 
 def model_build():
     return tf.keras.Sequential([
         tf.keras.layers.Input(shape=(num_input), dtype='float32'),
         tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(64, activation='relu'),
         tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dense(num_actions * 20, activation='linear'),
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dense(num_actions * 20),
         tf.keras.layers.Reshape((num_actions, 20)),
     ])
 
    
 
 model = model_build()
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), loss=tf.keras.losses.BinaryCrossentropy())
-#model.load_weights("model.h5")
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate), loss=tf.keras.losses.MeanSquaredError())
+model.load_weights("model.h5")
 
-history_q = deque(maxlen=10000)
-history_s = deque(maxlen=10000)
+history_q = deque(maxlen=5000)
+history_s = deque(maxlen=5000)
 
 min_action = np.array([0.0, 0.0, -math.pi/3., -math.pi/3.])
 max_action = np.array([1.0, 1.0, math.pi/3., math.pi/3.])
-num_split = np.array([20, 20, 20, 20], dtype=np.int32)
+num_split = np.array([20, 10, 20, 20], dtype=np.int32)
 
 
 def train_step(reward, action, observation, next_observation, done):
@@ -64,16 +64,13 @@ def train_step(reward, action, observation, next_observation, done):
     return model.predict([next_observation])
   
 def compute_reward(controller: DroneController):
-    return math.exp(-np.linalg.norm(controller.relative_position))
+    distance = math.sqrt(controller.relative_position[0]**2 + controller.relative_position[1]**2)
+    return -(distance**2) 
 
 def get_state(controller: DroneController):
-    return [*(np.array(controller.velocity)/100.), (np.array(controller.angular_velocity)/10.), *np.array(controller.relative_position)/100., math.cos(controller.angle)]
+    return [*(np.array(controller.velocity)/10.), (np.array(controller.angular_velocity)), *np.array(controller.relative_position)/100., math.cos(controller.angle)]
 
-def discretize_action(action):
-    global min_action, max_action, num_split
-    return np.array((action/(max_action - min_action)) * num_split, dtype=np.int32)
-
-def undiscretize_action(action):
+def continue_actions(action):
     global min_action, max_action, num_split
     return np.array(((action/num_split) * (max_action - min_action)) + min_action, dtype=np.float32)
     
@@ -91,7 +88,7 @@ def start(controller: DroneController):
     rewards.clear()
     actions_disc = train_step(0, prev_action, prev_observation, get_state(controller), False)[0]
     prev_action = np.argmax(actions_disc, axis=1)
-    actions = undiscretize_action(prev_action)
+    actions = continue_actions(prev_action)
         
     controller.thrust_left = actions[0]
     controller.thrust_right = actions[1]
@@ -102,7 +99,7 @@ def start(controller: DroneController):
     return controller
 
 def random_action():
-    return np.array([random.random(), random.random(), random.random()*2.*math.pi - math.pi, random.random()*2.*math.pi - math.pi])
+    return np.array([random.random(), random.random(), random.random()*(2./3.)*math.pi - (math.pi/3.), random.random()*(2./3.)*math.pi - (math.pi/3.)])
 
 debug = True
 start_time = 0
@@ -121,9 +118,9 @@ def loop(controller: DroneController):
     actions_disc = train_step(reward, prev_action, prev_observation, get_state(controller), False)[0]
     # Apply action
     prev_action = np.argmax(actions_disc, axis=1)
-    actions = undiscretize_action(prev_action)
+    actions = continue_actions(prev_action)
     
-    if random.random() < epsilon - n_episodes/10*10000.:
+    if random.random() < epsilon - (n_episodes/10*10000.):
         actions = random_action()
     
     controller.thrust_left = actions[0]
@@ -140,12 +137,16 @@ def loop(controller: DroneController):
 def end(controller: DroneController, reason: str):
     """called when the simulation ends"""
     print("Simulation ended because of: " + reason)
-    reward = 100 if reason == "reached_target" else -10000
+    reward = compute_reward(controller)
+    if reason == "reached_target":
+        reward = 100
+    elif reason == "crashed":
+        reward = -1000.
     rewards.append(reward)
     actions_disc = train_step(reward, prev_action, prev_observation, get_state(controller), True)[0]
     # add to file
     reward_history.append(np.mean(rewards))
-    model.fit(np.array(history_s), np.array(history_q), batch_size=min(100, len(history_q)), epochs=max(1, len(history_q)//100), verbose=0)
+    model.fit(np.array(history_s), np.array(history_q), batch_size=min(100, len(history_q)), epochs=max(1, min(len(history_q)//100, 20)))
     plt.clf()
     plt.plot(reward_history)
     print("len hist", len(history_q))
